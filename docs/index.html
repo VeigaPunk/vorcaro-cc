@@ -1,0 +1,43 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>contexto — Vorcaro archive relatedness search</title>
+<style>body{font-family:system-ui,sans-serif;max-width:960px;margin:20px auto;padding:0 12px;background:#111;color:#ddd}
+input[type=text]{width:70%;font-size:18px;padding:8px}button{font-size:16px;padding:8px 14px}
+.r{border-bottom:1px solid #333;padding:8px 0}.p{font-weight:bold;display:inline-block;width:64px}.m{color:#8ab;font-size:13px}
+.t{white-space:pre-wrap;margin-top:4px;font-size:14px}.bar{height:3px;background:#4a8}.k{display:inline-block;margin:2px;padding:2px 7px;border-radius:9px;background:#234;cursor:pointer;font-size:13px}
+#st{color:#999;font-size:13px}a{color:#8ab}</style>
+<h2>contexto · Vorcaro archive relatedness search</h2>
+<p id=st>Loading data and model (first load downloads ~120 MB model, cached afterwards)…</p>
+<form id=f><input type=text id=q placeholder="restaurante, jantar em Paris, Banco Central, avião…" autofocus> <button>Search</button><br>
+threshold <input type=range id=th min=50 max=100 value=90><span id=tv>90%</span> · max results <input id=lim value=100 size=4></form>
+<div id=kw></div><div id=info></div><div id=res></div>
+<p style="font-size:12px;color:#777">Public material (chat archive + PF report IPJ-A 3298613/2026). Contact data and identifiers redacted. Scores are calibrated relatedness, not evidence. <a href="https://github.com/VeigaPunk/contexto">source &amp; method</a></p>
+<script type="module">
+import {pipeline} from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.1';
+const $=id=>document.getElementById(id), esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const [meta,docs,kws,E,K]=await Promise.all([fetch('data/meta.json').then(r=>r.json()),fetch('data/docs.json').then(r=>r.json()),fetch('data/keywords.json').then(r=>r.json()),
+ fetch('data/doc_emb.i8').then(r=>r.arrayBuffer()).then(b=>new Int8Array(b)),fetch('data/kw_emb.i8').then(r=>r.arrayBuffer()).then(b=>new Int8Array(b))]);
+const ntext=docs.map(d=>norm(d.x)); const D=meta.dim;
+$('st').textContent=`Loaded ${docs.length} passages. Loading embedding model…`;
+const emb=await pipeline('feature-extraction',meta.model);
+$('st').textContent=`Ready: ${docs.length} passages, model ${meta.model}.`;
+function pct(c,q){const xs=[-1,...q,Math.min(1,q[q.length-1]+0.05)],ys=[0,...meta.pct_at,100];
+ if(c<=xs[0])return 0; for(let i=1;i<xs.length;i++) if(c<=xs[i]) return ys[i-1]+(ys[i]-ys[i-1])*(c-xs[i-1])/(xs[i]-xs[i-1]); return 100;}
+function dots(M,n,scale,qv){const o=new Float32Array(n);for(let i=0;i<n;i++){let s=0,b=i*D;for(let j=0;j<D;j++)s+=M[b+j]*qv[j];o[i]=s*scale/127;}return o;}
+async function go(){const query=$('q').value.trim(); if(!query)return; $('st').textContent='Searching…';
+ const qv=(await emb('query: '+query,{pooling:'mean',normalize:true})).data;
+ const cos=dots(E,docs.length,meta.doc_scale,qv); const nq=norm(query); const esc2=nq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ const full=new RegExp('\\b'+esc2+'\\w{0,3}\\b'); const terms=(nq.match(/\w{4,}/g)||[]).map(w=>new RegExp('\\b'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+ const th=+$('th').value, lim=+$('lim').value; const sc=[];
+ for(let i=0;i<docs.length;i++){let c=cos[i]-meta.hub_alpha*docs[i].h; const t=ntext[i];
+  if(full.test(t))c+=meta.lex_bonus; else if(terms.length&&terms.every(r=>r.test(t)))c+=meta.lex_bonus/2; sc.push([pct(c,meta.doc_null_quantiles),i]);}
+ sc.sort((a,b)=>b[0]-a[0]); const above=sc.filter(s=>s[0]>=th);
+ const kc=dots(K,kws.length,meta.kw_scale,qv); const kk=[...kc].map((c,i)=>[pct(c,meta.kw_null_quantiles),i]).sort((a,b)=>b[0]-a[0]).slice(0,20);
+ $('kw').innerHTML='Related keywords: '+kk.map(([p,i])=>`<span class=k data-k="${esc(kws[i].k)}">${esc(kws[i].k)} ${p.toFixed(0)}%</span>`).join('');
+ $('info').innerHTML=`<p>${above.length} passages ≥ ${th}% (showing ${Math.min(lim,above.length)})${above.length?'':' — lower the threshold to see weaker matches'}</p>`;
+ $('res').innerHTML=above.slice(0,lim).map(([p,i])=>{const d=docs[i];return `<div class=r><div class=bar style="width:${p}%"></div><span class=p>${p.toFixed(1)}%</span><span class=m>${esc(d.c)} · ${esc(d.d)} ${esc(d.t)} · ${esc(d.s.join(', '))} · PDF p.${d.p} ${esc(d.i.join(' '))}</span><div class=t>${esc(d.x)}</div></div>`}).join('');
+ $('st').textContent=`Ready.`; }
+$('f').onsubmit=e=>{e.preventDefault();go()}; $('th').oninput=()=>$('tv').textContent=$('th').value+'%'; $('th').onchange=go;
+$('kw').onclick=e=>{if(e.target.dataset.k){$('q').value=e.target.dataset.k;go()}};
+const u=new URLSearchParams(location.search).get('q'); if(u){$('q').value=u;go()}
+</script></html>

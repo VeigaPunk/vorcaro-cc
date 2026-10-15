@@ -1,0 +1,43 @@
+{
+ "model": "Xenova/multilingual-e5-small",
+ "py_model": "intfloat/multilingual-e5-small",
+ "dim": 384,
+ "n_docs": 12267,
+ "n_kw": 288,
+ "doc_scale": 0.18192,
+ "kw_scale": 0.177755,
+ "hub_alpha": 0.3,
+ "lex_bonus": 0.02,
+ "null_probs": [
+  0.5,
+  0.9,
+  0.99,
+  0.999,
+  0.9999,
+  0.99999
+ ],
+ "pct_at": [
+  50,
+  75,
+  90,
+  95,
+  97,
+  99
+ ],
+ "doc_null_quantiles": [
+  0.79046,
+  0.82699,
+  0.85728,
+  0.87487,
+  0.8896,
+  0.90331
+ ],
+ "kw_null_quantiles": [
+  0.81511,
+  0.84684,
+  0.87497,
+  0.89933,
+  0.95262,
+  0.99048
+ ]
+}
