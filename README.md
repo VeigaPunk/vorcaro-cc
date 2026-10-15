@@ -1,6 +1,6 @@
-# contexto — Vorcaro archive relatedness search
+# vorcaro-cc — Vorcaro archive relatedness search
 
-Live: https://veigapunk.github.io/contexto/
+Live: https://veigapunk.github.io/vorcaro-cc/
 
 A Contexto-style semantic search over public material about Daniel Vorcaro: type anything (`restaurante`, `jantar em Paris`, `Banco Central`, `avião`) and get passages ranked by a calibrated 0–100% relatedness score, plus related keywords. Everything runs in your browser; no server.
 

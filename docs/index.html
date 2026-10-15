@@ -1,16 +1,16 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>contexto — Vorcaro archive relatedness search</title>
+<title>vorcaro-cc — Vorcaro archive relatedness search</title>
 <style>body{font-family:system-ui,sans-serif;max-width:960px;margin:20px auto;padding:0 12px;background:#111;color:#ddd}
 input[type=text]{width:70%;font-size:18px;padding:8px}button{font-size:16px;padding:8px 14px}
 .r{border-bottom:1px solid #333;padding:8px 0}.p{font-weight:bold;display:inline-block;width:64px}.m{color:#8ab;font-size:13px}
 .t{white-space:pre-wrap;margin-top:4px;font-size:14px}.bar{height:3px;background:#4a8}.k{display:inline-block;margin:2px;padding:2px 7px;border-radius:9px;background:#234;cursor:pointer;font-size:13px}
 #st{color:#999;font-size:13px}a{color:#8ab}</style>
-<h2>contexto · Vorcaro archive relatedness search</h2>
+<h2>vorcaro-cc · Vorcaro archive relatedness search</h2>
 <p id=st>Loading data and model (first load downloads ~120 MB model, cached afterwards)…</p>
 <form id=f><input type=text id=q placeholder="restaurante, jantar em Paris, Banco Central, avião…" autofocus> <button>Search</button><br>
 threshold <input type=range id=th min=50 max=100 value=90><span id=tv>90%</span> · max results <input id=lim value=100 size=4></form>
 <div id=kw></div><div id=info></div><div id=res></div>
-<p style="font-size:12px;color:#777">Public material (chat archive + PF report IPJ-A 3298613/2026). Contact data and identifiers redacted. Scores are calibrated relatedness, not evidence. <a href="https://github.com/VeigaPunk/contexto">source &amp; method</a></p>
+<p style="font-size:12px;color:#777">Public material (chat archive + PF report IPJ-A 3298613/2026). Contact data and identifiers redacted. Scores are calibrated relatedness, not evidence. <a href="https://github.com/VeigaPunk/vorcaro-cc">source &amp; method</a></p>
 <script type="module">
 import {pipeline} from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.1';
 const $=id=>document.getElementById(id), esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
