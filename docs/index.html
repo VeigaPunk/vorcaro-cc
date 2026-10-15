@@ -1,43 +1,627 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>vorcaro-cc — Vorcaro archive relatedness search</title>
-<style>body{font-family:system-ui,sans-serif;max-width:960px;margin:20px auto;padding:0 12px;background:#111;color:#ddd}
-input[type=text]{width:70%;font-size:18px;padding:8px}button{font-size:16px;padding:8px 14px}
-.r{border-bottom:1px solid #333;padding:8px 0}.p{font-weight:bold;display:inline-block;width:64px}.m{color:#8ab;font-size:13px}
-.t{white-space:pre-wrap;margin-top:4px;font-size:14px}.bar{height:3px;background:#4a8}.k{display:inline-block;margin:2px;padding:2px 7px;border-radius:9px;background:#234;cursor:pointer;font-size:13px}
-#st{color:#999;font-size:13px}a{color:#8ab}</style>
-<h2>vorcaro-cc · Vorcaro archive relatedness search</h2>
-<p id=st>Loading data and model (first load downloads ~120 MB model, cached afterwards)…</p>
-<form id=f><input type=text id=q placeholder="restaurante, jantar em Paris, Banco Central, avião…" autofocus> <button>Search</button><br>
-threshold <input type=range id=th min=50 max=100 value=90><span id=tv>90%</span> · max results <input id=lim value=100 size=4></form>
-<div id=kw></div><div id=info></div><div id=res></div>
-<p style="font-size:12px;color:#777">Public material (chat archive + PF report IPJ-A 3298613/2026). Contact data and identifiers redacted. Scores are calibrated relatedness, not evidence. <a href="https://github.com/VeigaPunk/vorcaro-cc">source &amp; method</a></p>
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>vorcaro-cc</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700&family=Noto+Color+Emoji&display=swap">
+<style>
+@font-face{
+  font-family:"JetBrainsMono Nerd Font";
+  src:url("https://cdn.jsdelivr.net/gh/ryanoasis/nerd-fonts@v3.3.0/patched-fonts/JetBrainsMono/Ligatures/Regular/JetBrainsMonoNerdFont-Regular.ttf") format("truetype");
+  font-weight:400;font-style:normal;font-display:swap;
+}
+@font-face{
+  font-family:"JetBrainsMono Nerd Font";
+  src:url("https://cdn.jsdelivr.net/gh/ryanoasis/nerd-fonts@v3.3.0/patched-fonts/JetBrainsMono/Ligatures/Bold/JetBrainsMonoNerdFont-Bold.ttf") format("truetype");
+  font-weight:700;font-style:normal;font-display:swap;
+}
+:root{
+  --bg:#070708;--ink:#f4f4f5;--muted:#8e8e93;--line:#2c2c2e;--card:#141416;
+  --gold:#e8c547;--blue:#0a84ff;--in:#3a3a3c;--chip:#1c1c1e;
+  --font:"JetBrainsMono Nerd Font","JetBrains Mono",ui-monospace,monospace;
+  --emoji:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",emoji,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font:15px/1.45 var(--font);font-synthesis:none;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+main{max-width:1120px;margin:0 auto;padding:22px 16px 64px}
+.desk{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px;align-items:start}
+h1{font:700 22px/1 var(--font);letter-spacing:-.03em;margin:0 0 8px}
+.lede{color:var(--muted);font-size:13px;max-width:62ch;margin:0 0 8px}
+form{display:flex;gap:8px;margin:16px 0 8px}
+input[type=text]{flex:1;background:#000;border:1px solid var(--line);border-radius:10px;padding:12px 12px;outline:none}
+input[type=text]:focus{border-color:var(--blue)}
+button.go{background:var(--gold);color:#1a1404;border:0;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer}
+.row{color:var(--muted);font-size:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#st{min-height:1.2em}
+h2{font:700 11px/1 var(--font);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px}
+.k,.who,.person{display:inline-block;margin:3px 4px 0 0;padding:4px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--line);cursor:pointer;font-size:12px}
+.who{color:#d7f5df;border-color:#245c38}
+.person{color:#ddd6f3}
+.card,.hit{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 8px;width:100%;text-align:left;cursor:pointer}
+.card.on,.hit.on{border-color:var(--gold)}
+.card h3{margin:0;font:700 16px/1.25 var(--font)}
+.meta{color:var(--muted);font-size:12px;margin-top:4px}
+.score{color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums}
+.setting{margin:8px 0 0;color:#f3ecdf;font-size:13px}
+.hit{display:grid;grid-template-columns:3.4em minmax(0,1fr) auto;gap:8px 10px;align-items:start}
+.hit .score{min-width:3.2em}
+.hit-thread{display:block;color:var(--muted);font-size:11px}
+.hit-line{display:block;margin-top:3px}
+.fold{background:transparent;border:1px solid var(--line);color:var(--gold);border-radius:999px;padding:4px 8px;cursor:pointer;font-size:11px}
+.fold:hover{color:#fff;border-color:var(--gold)}
+.slip{grid-column:1 / -1;border-top:1px solid var(--line);padding-top:8px}
+.slip p{margin:0 0 10px}
+.who-line{display:block;color:var(--muted);font-size:11px;margin-bottom:2px}
+.moments{display:none;margin-top:8px}
+.card.on .moments{display:block}
+.moment{padding:8px 0;border-top:1px solid var(--line);cursor:pointer}
+.moment:hover{color:#fff}
+.dayrow{display:flex;justify-content:center;gap:8px;margin:12px 0}
+.dayfold{background:#1c1c1e;color:var(--gold);border:0;border-radius:999px;padding:6px 12px;cursor:pointer;font-size:12px}
+.dayfold.shut{color:var(--muted);background:transparent;border:1px solid var(--line)}
+.dayfold:hover{color:#fff}
+.phone{position:sticky;top:12px}
+.bezel{background:#000;border:1px solid #3a3a3c;border-radius:36px;padding:8px 8px 10px;box-shadow:0 24px 80px rgba(0,0,0,.45)}
+.island{width:108px;height:22px;margin:2px auto 6px;background:#0c0c0e;border-radius:20px;box-shadow:inset 0 0 0 1px #242426}
+.homebar{width:118px;height:4px;margin:8px auto 2px;border-radius:4px;background:#3a3a3c}
+.screen{background:#000;border-radius:28px;min-height:640px;max-height:calc(100vh - 72px);overflow:auto;padding:8px 12px 18px}
+.status{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;padding:6px 8px 4px}
+.phead{position:sticky;top:0;background:rgba(0,0,0,.92);backdrop-filter:blur(8px);padding:8px 4px 10px;border-bottom:1px solid #1c1c1e;z-index:2}
+.phead h3{margin:0;font:700 16px/1.2 var(--font);text-align:center}
+.phead .surface{display:block;text-align:center;color:var(--muted);font-size:11px;margin-top:2px}
+#phone-who{text-align:center;margin-top:6px}
+.log{padding-top:12px}
+.bub{margin:2px 0 8px;max-width:78%;padding:8px 11px 6px;border-radius:18px;white-space:pre-wrap;font-size:14.5px}
+.bub .ts{display:block;margin-top:6px;font-size:10px;letter-spacing:.02em;font-family:var(--font);opacity:.78}
+.bub.me{background:var(--blue);color:#fff;margin-left:auto;border-bottom-right-radius:5px}
+.bub.me .ts{color:#d6e8ff}
+.bub.them{background:var(--in);color:#fff;border-bottom-left-radius:5px}
+.bub.them .ts{color:#c7c7cc}
+.bub.note{max-width:100%;background:#161616;border:1px solid var(--line);border-radius:14px;color:var(--ink)}
+.bub.note .ts{color:var(--muted)}
+.bub.media{font-style:italic;color:#d0d0d4}
+.bub.me.media{color:#fff}
+.emo{font-family:var(--emoji);font-style:normal;font-weight:400;font-variant-emoji:emoji;font-size:1.2em;line-height:1;vertical-align:-0.12em}
+.bub.e1,.bub.e2,.bub.e3{background:transparent;padding:0 2px;border-radius:0;font-family:var(--emoji);line-height:1.15}
+.bub.e1{font-size:52px}
+.bub.e2{font-size:42px}
+.bub.e3{font-size:32px}
+.bub.e1 .emo,.bub.e2 .emo,.bub.e3 .emo{font-size:1em;vertical-align:0}
+.bub.e1 .ts,.bub.e2 .ts,.bub.e3 .ts{font-size:10px;color:var(--muted);opacity:1}
+.daychip{text-align:center;margin:14px 0 8px}
+.daychip span{display:inline-block;background:#1c1c1e;color:var(--muted);border-radius:999px;padding:3px 8px;font-size:11px}
+.pane.on{box-shadow:inset 2px 0 0 var(--gold);padding-left:8px}
+@media (prefers-reduced-motion:no-preference){
+  .pane,.slip{animation:rise .28s ease}
+}
+@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.gap{height:14px}
+.empty{color:var(--muted);text-align:center;padding:48px 16px}
+.empty .big{font-family:var(--emoji);font-size:52px;line-height:1;margin-bottom:10px;font-variant-emoji:emoji}
+footer{color:#6e6e73;font-size:11px;margin-top:28px;max-width:70ch}
+a{color:var(--gold)}
+a.place,a.buy{text-decoration-thickness:1px;text-underline-offset:2px}
+a.price{margin-left:.35em;font-size:.86em;white-space:nowrap;text-decoration-thickness:1px;text-underline-offset:2px}
+.bub.me a.place,.bub.them a.place,.bub.me a.buy,.bub.them a.buy,.bub.me a.price,.bub.them a.price{color:#ffe7a3}
+a.place:hover,a.buy:hover,a.price:hover{color:#fff}
+@media(max-width:880px){
+  .desk{grid-template-columns:1fr}
+  .phone{position:static}
+  .screen{max-height:none}
+}
+</style>
+<main>
+<h1>vorcaro-cc</h1>
+<div class="desk">
+<section>
+<p class="lede">Ask in ordinary words. The closest passage opens as a thread. Unfold the rest of that day when you want it. A high score means related. It is not proof.</p>
+<p id="st">Loading the archive. The model arrives after the first thread is on screen.</p>
+<form id="f">
+  <input type="text" id="q" placeholder="restaurante, jantar em Paris, Banco Central" autofocus>
+  <button class="go">Search</button>
+</form>
+<div class="row">threshold <input type="range" id="th" min="50" max="100" value="75"><span id="tv">75%</span>
+ · show <input id="lim" value="40" size="3"></div>
+<div id="kw"></div>
+<div id="info"></div>
+<div id="groups"></div>
+<div id="people"></div>
+<div id="res"></div>
+</section>
+<aside class="phone" id="phone">
+  <div class="bezel">
+    <div class="island" aria-hidden="true"></div>
+    <div class="screen" id="screen">
+      <div class="status"><span id="clock">--:--</span><span>vorcaro-cc</span></div>
+      <div class="phead">
+        <h3 id="phone-name">Thread</h3>
+        <span class="surface" id="phone-surface">conversa</span>
+        <span class="surface" id="phone-fold"></span>
+        <div id="phone-who"></div>
+      </div>
+      <div class="log" id="log">
+        <div class="empty"><div class="big">💬</div>Search, and the thread opens here.</div>
+      </div>
+    </div>
+    <div class="homebar" aria-hidden="true"></div>
+  </div>
+</aside>
+</div>
+<footer>The material is the chat archive and the Federal Police report IPJ-A 3298613/2026. Phones, CPFs, bank details and street addresses stay redacted. The publish step stops if the audit still finds one. Scores are relatedness, read in this browser, with no server. <a href="https://github.com/VeigaPunk/vorcaro-cc">Source and method</a>.</footer>
+</main>
 <script type="module">
 import {pipeline} from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.1';
-const $=id=>document.getElementById(id), esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-const [meta,docs,kws,E,K]=await Promise.all([fetch('data/meta.json').then(r=>r.json()),fetch('data/docs.json').then(r=>r.json()),fetch('data/keywords.json').then(r=>r.json()),
- fetch('data/doc_emb.i8').then(r=>r.arrayBuffer()).then(b=>new Int8Array(b)),fetch('data/kw_emb.i8').then(r=>r.arrayBuffer()).then(b=>new Int8Array(b))]);
-const ntext=docs.map(d=>norm(d.x)); const D=meta.dim;
-$('st').textContent=`Loaded ${docs.length} passages. Loading embedding model…`;
-const emb=await pipeline('feature-extraction',meta.model);
-$('st').textContent=`Ready: ${docs.length} passages, model ${meta.model}.`;
+const JUNK=/whatsapp|no answer|^figura$|^nota$|submodule|aplicativo de notas|^instagram$|^activity$|^lunch$|^free$|^cruise$|^event$|^transport$/i;
+const LEAD={dining:['ven','Places named around meals'],venue:['ven','Places named around meals'],place:['plc','Places'],org:['org','Institutions'],travel:['plc','Places on these crossings']};
+const MEDIA=/^(Foto|Áudio|Vídeo|Arquivo|Contato|Figurinha)\.?$/i;
+
+function tick(){const d=new Date();$('clock').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+tick();setInterval(tick,30000);
+
+const [meta,docs,kws,bufE,bufK,facets,MAPS,PRICES]=await Promise.all([
+  fetch('data/meta.json').then(r=>r.json()),
+  fetch('data/docs.json').then(r=>r.json()),
+  fetch('data/keywords.json').then(r=>r.json()),
+  fetch('data/doc_emb.i8').then(r=>r.arrayBuffer()),
+  fetch('data/kw_emb.i8').then(r=>r.arrayBuffer()),
+  fetch('data/facets.json').then(r=>r.ok?r.json():null).catch(()=>null),
+  fetch('data/maps.json').then(r=>r.ok?r.json():{}).catch(()=>({})),
+  fetch('data/prices.json').then(r=>r.ok?r.json():{}).catch(()=>({}))
+]);
+const E=new Int8Array(bufE), K=new Int8Array(bufK), D=meta.dim;
+const roster=facets?.people||[];
+
+function scrub(s){
+  let t=String(s||'')
+    .replace(/<\|[^|>]*\|>/g,'')
+    .replace(/<\/?img>/gi,'')
+    .replace(/<attached:[^>]*>/gi,'')
+    .replace(/[ὠὡὣὢὤὃἱ]/g,'')
+    .replace(/\[(?:image|imagem)\](?:\s*\[media\])?/gi,'Foto')
+    .replace(/\[(?:audio|áudio)\](?:\s*\[media\])?/gi,'Áudio')
+    .replace(/\[(?:video|vídeo)\](?:\s*\[media\])?/gi,'Vídeo')
+    .replace(/\[(?:document|documento)\](?:\s*\[REDACTED\]-?)?/gi,'Arquivo')
+    .replace(/\[(?:text|arquivo|anexo)\]/gi,'Arquivo')
+    .replace(/\[(?:sticker|gif|figurinha)\](?:\s*\[media\])?/gi,'Figurinha')
+    .replace(/\[(?:contact|contato)\](?:\s*\[media\])?/gi,'Contato')
+    .replace(/(Foto|Áudio|Vídeo|Arquivo|Contato|Figurinha)(?:\s*\[REDACTED\])+/g,'$1')
+    .replace(/\[REDACTED\]-+/g,'[REDACTED]')
+    .replace(/[ \t]{2,}/g,' ')
+    .replace(/\n{3,}/g,'\n')
+    .trim();
+  return t;
+}
+function forensic(body){
+  const n=(body.match(/20\d{2}-\d{2}-\d{2}T\d{2}:\d{2}/gi)||[]).length;
+  if(n>=3 && /whatsapp|com\.apple\.|mobilenotes/i.test(body)) return 'Horários de aplicativos. Identificadores omitidos.';
+  if((body.match(/net\.whatsapp/gi)||[]).length>=2) return 'Horários de aplicativos. Identificadores omitidos.';
+  return body;
+}
+function stampOf(date,time){
+  const p=String(date||'').split('-');
+  if(p.length!==3) return '[——:—— | ——]';
+  const hm=String(time||'');
+  const clock=/^\d{2}:\d{2}/.test(hm)?hm.slice(0,5):'——';
+  return `[${p[2]}:${p[1]} | ${clock}]`;
+}
+function linesOf(d){
+  return scrub(d.x).split('\n').map(s=>s.trim()).filter(Boolean).map(line=>{
+    const stamped=line.match(/^\[(\d{2}:\d{2}) \| (\d{2}:\d{2}|——)\]\s+([^:]{1,80}):\s*([\s\S]*)$/);
+    if(stamped){
+      const body=forensic(stamped[4].trim());
+      return body?{stamp:`[${stamped[1]} | ${stamped[2]}]`,who:stamped[3],body}:null;
+    }
+    const m=line.match(/^([^:]{1,48}):\s*([\s\S]*)$/);
+    const who=m?(m[1]==='DV'?'Daniel Vorcaro':m[1]):'';
+    const body=forensic((m?m[2]:line).trim());
+    return body?{stamp:stampOf(d.d,d.t),who,body}:null;
+  }).filter(Boolean);
+}
+for(const d of docs){
+  d.x=scrub(d.x);
+  d.who=d.who||d.s.map(s=>s==='DV'?'Daniel Vorcaro':s);
+}
+const days=new Map();
+docs.forEach((d,i)=>{const k=d.c+'\t'+d.d; if(!days.has(k))days.set(k,[]); days.get(k).push(i);});
+
+const PICTO=/\p{Extended_Pictographic}|\p{Regional_Indicator}/u;
+function graphemes(body){
+  return [...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(body)].map(s=>s.segment);
+}
+function paint(body){
+  return graphemes(body).map(s=>PICTO.test(s)?`<span class="emo">${esc(s)}</span>`:esc(s)).join('');
+}
+let LINK_RE=null, NICE_RE=null, BUY_RE=null, CANON=new Map(), CITIES=[], PRICE_KEYS=[];
+function akey(s){return norm(s).replace(/[\u2018\u2019\u02bc']/g,'');}
+function foldChars(s){
+  return String(s||'').normalize('NFD').replace(/\p{M}/gu,'').replace(/[\u2018\u2019\u02bc]/g,"'");
+}
+function foldIndex(s){
+  let folded='', orig=0;
+  const map=[];
+  for(const ch of String(s||'')){
+    const base=foldChars(ch);
+    for(let i=0;i<base.length;i++) map.push(orig);
+    folded+=base;
+    orig+=ch.length;
+  }
+  map.push(orig);
+  return {folded, map};
+}
+function spCity(hay){
+  const n=norm(hay||'');
+  const re=/(?<![\p{L}\p{N}])sp(?![\p{L}\p{N}])/gu;
+  let m;
+  while((m=re.exec(n))){
+    const slice=n.slice(Math.max(0,m.index-8), Math.min(n.length, m.index+10));
+    if(!/\d/.test(slice)) return true;
+  }
+  return false;
+}
+function buildLinker(){
+  const names=[...new Set([...(facets?.venues||[]), ...(facets?.places||[])].map(x=>x.name))].filter(Boolean);
+  names.sort((a,b)=>b.length-a.length||a.localeCompare(b));
+  CITIES=(facets?.places||[]).map(p=>p.name).sort((a,b)=>b.length-a.length);
+  CANON=new Map();
+  for(const name of names) CANON.set(akey(name), name);
+  const pats=[];
+  for(const name of names){ if(name!=='Nice') pats.push([foldChars(name), name]); }
+  pats.sort((a,b)=>b[0].length-a[0].length||b[1].length-a[1].length);
+  const alt=list=>list.map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
+  const compile=(list, flags)=>list.length?new RegExp('(?<![\\p{L}\\p{N}])(?:'+alt(list)+')(?![\\p{L}\\p{N}])', flags):null;
+  LINK_RE=compile(pats.map(p=>p[0]), 'giu');
+  NICE_RE=compile(['Nice'], 'gu');
+  for(const [pat, name] of pats) CANON.set(akey(pat), name);
+  const place=new Set(names.map(akey));
+  PRICE_KEYS=Object.entries(PRICES||{}).filter(([,e])=>e&&typeof e.href==='string'&&e.href.startsWith('https://')&&/^[\d][\d., ]*$/.test(String(e.price||''))).sort((a,b)=>b[0].length-a[0].length||a[0].localeCompare(b[0]));
+  const buys=PRICE_KEYS.map(([k])=>foldChars(k)).filter(k=>{
+    const nk=akey(k);
+    if(place.has(nk)) return false;
+    for(const p of place) if(nk.startsWith(p+' ')) return false;
+    return true;
+  });
+  BUY_RE=compile(buys, 'giu');
+}
+buildLinker();
+function lineAt(body, index){
+  const cut=Math.max(0, index|0);
+  const br=body.lastIndexOf('\n', Math.max(0, cut-1));
+  const start=br<0?0:br+1;
+  const nl=body.indexOf('\n', cut);
+  return body.slice(start, nl<0?body.length:nl);
+}
+function cityAt(city, context){
+  const nice=city==='Nice';
+  const hay=nice?(context||''):norm(context||'');
+  const forms=nice?['Nice']:[norm(city), norm(city).replace(/\./g,'')].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  const out=[];
+  for(const needle of forms){
+    const re=new RegExp('(?<![\\p{L}\\p{N}])'+needle.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![\\p{L}\\p{N}])','gu');
+    let m; while((m=re.exec(hay))) out.push(m.index);
+  }
+  return out;
+}
+function mapsQuery(surface, context){
+  const canon=CANON.get(akey(surface))||surface;
+  if(MAPS[canon]) return MAPS[canon];
+  const ctx=context||'';
+  const folded=norm(ctx);
+  const needle=norm(surface);
+  const at=needle?folded.indexOf(needle):-1;
+  let best=null, bestDist=Infinity, bestLen=0;
+  for(const city of CITIES){
+    if(norm(city)===norm(canon)) continue;
+    for(const pos of cityAt(city, ctx)){
+      const dist=Math.abs(pos-(at<0?0:at));
+      const len=norm(city).length;
+      if(dist<bestDist || (dist===bestDist && len>bestLen)){best=city; bestDist=dist; bestLen=len;}
+    }
+  }
+  return best?`${canon}, ${MAPS[best]||best}`:canon;
+}
+function mapsA(surface, context){
+  const q=mapsQuery(surface, context);
+  const href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);
+  return `<a class="place" href="${esc(href)}" target="_blank" rel="noopener noreferrer" title="${esc(q)}">${paint(surface)}</a>`;
+}
+function wordOn(hay, word){
+  const n=norm(word);
+  if(!n) return false;
+  return new RegExp('(?<![\\p{L}\\p{N}])'+n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![\\p{L}\\p{N}])','u').test(norm(hay||''));
+}
+function priceEntry(surface, context){
+  const canon=CANON.get(akey(surface))||surface;
+  const nc=akey(canon);
+  let best=null, bestLen=-1;
+  for(const [key, entry] of PRICE_KEYS){
+    const nk=akey(key);
+    if(nk===nc||nk===akey(surface)){
+      if(key.length>bestLen){best=entry; bestLen=key.length;}
+      continue;
+    }
+    if(!nk.startsWith(nc+' ')) continue;
+    const rest=key.slice(canon.length).trim();
+    const words=rest.split(/\s+/).filter(w=>norm(w).length>=3);
+    const named=words.every(w=>wordOn(context, w));
+    const abbrev=words.length===2&&norm(words[0])==='sao'&&norm(words[1])==='paulo'&&spCity(context);
+    if(words.length&&(named||abbrev)&&key.length>bestLen){best=entry; bestLen=key.length;}
+  }
+  return best;
+}
+function money(entry){
+  const n=String(entry.price||'').trim();
+  if(!n) return '';
+  const c=entry.currency||'';
+  const sym=c==='USD'?'$':c==='EUR'?'€':c==='GBP'?'£':c==='BRL'?'R$':c?c+' ':'';
+  return sym+n;
+}
+function priceTip(entry){
+  return [entry.label, entry.unit, entry.retailer].filter(Boolean).join(' · ');
+}
+function priceA(entry){
+  if(!entry||typeof entry.href!=='string'||!entry.href.startsWith('https://')) return '';
+  const q=money(entry);
+  if(!q) return '';
+  return `<a class="price" href="${esc(entry.href)}" target="_blank" rel="noopener noreferrer" title="${esc(priceTip(entry))}">${esc(q)}</a>`;
+}
+function buyA(surface, entry){
+  if(!entry) return paint(surface);
+  return `<a class="buy" href="${esc(entry.href)}" target="_blank" rel="noopener noreferrer" title="${esc(priceTip(entry))}">${paint(surface)}</a>${priceA(entry)}`;
+}
+function renderBody(body){
+  if(!body) return '';
+  const {folded, map}=foldIndex(body);
+  const hits=[];
+  const scan=(re, kind)=>{
+    if(!re) return;
+    re.lastIndex=0;
+    let m;
+    while((m=re.exec(folded))){
+      const a=map[m.index], b=map[m.index+m[0].length];
+      if(a==null||b==null||b<=a){ if(re.lastIndex===m.index) re.lastIndex++; continue; }
+      hits.push([a, b, body.slice(a, b), kind]);
+    }
+  };
+  scan(LINK_RE, 'place'); scan(NICE_RE, 'place'); scan(BUY_RE, 'buy');
+  hits.sort((a,b)=>a[0]-b[0]||(b[1]-b[0])-(a[1]-a[0])||(a[3]==='place'?0:1)-(b[3]==='place'?0:1));
+  let html='', i=0, end=-1;
+  for(const [a,b,surface,kind] of hits){
+    if(a<end) continue;
+    const line=lineAt(body, a);
+    const priced=priceEntry(surface, line);
+    html+=paint(body.slice(i,a))+(kind==='buy'?buyA(surface, priced):mapsA(surface, line)+priceA(priced));
+    i=b; end=b;
+  }
+  return html+paint(body.slice(i));
+}
+function emojiClass(body){
+  const t=body.trim();
+  if(!t||/\p{L}|\p{N}/u.test(t)) return '';
+  const seg=graphemes(t).filter(s=>s.trim());
+  const emoji=seg.filter(s=>PICTO.test(s));
+  if(!emoji.length||emoji.length!==seg.length||emoji.length>3) return '';
+  return emoji.length===1?'e1':emoji.length===2?'e2':'e3';
+}
+function surfaceOf(d){return String(d.c||'').startsWith('IPJ')?'relatório':'conversa';}
+function whoChips(names,limit=8){
+  return names.slice(0,limit).map(n=>`<span class="who" data-q="${esc(n)}">${esc(n)}</span>`).join('');
+}
+function bubble(row){
+  const me=row.who==='Daniel Vorcaro';
+  const note=/pol[ií]cia federal/i.test(row.who);
+  const media=MEDIA.test(row.body);
+  const emo=emojiClass(row.body);
+  const side=note?'note':me?'me':'them';
+  return `<div class="bub ${side}${media?' media':''}${emo?' '+emo:''}">${renderBody(row.body)}<span class="ts">${esc(row.stamp)} ${esc(row.who)}</span></div>`;
+}
+function bubbles(i, state){
+  return linesOf(docs[i]).map(row=>{
+    const day=row.stamp.slice(1,6);
+    const chip=day!==state.day?`<div class="daychip"><span>${esc(day)}</span></div>`:'';
+    state.day=day;
+    return chip+bubble(row);
+  }).join('');
+}
+function peopleOf(ids){
+  const seen=new Set(), out=[];
+  for(const id of ids) for(const w of docs[id].who||[]) if(!seen.has(w)){seen.add(w); out.push(w);}
+  return out;
+}
+let threadFocus=-1, dayOpen={earlier:0,later:0}, lastHits=[], slips=new Set();
+const UNFOLD=4;
+function paintHits(){
+  if(!lastHits.length){$('res').innerHTML='<p class="lede">Nothing at this threshold. Lower it.</p>'; return;}
+  $('res').innerHTML='<h2>Threads</h2>'+lastHits.map(({i,s})=>{
+    const d=docs[i], open=slips.has(i);
+    const slip=open?`<div class="slip">${linesOf(d).map(r=>`<p><span class="who-line">${esc(r.stamp)} ${esc(r.who)}</span>${renderBody(r.body)}</p>`).join('')}</div>`:'';
+    return `<div class="hit${open?' open':''}${i===threadFocus?' on':''}" role="button" tabindex="0" data-i="${i}"><span class="score">${s.toFixed(0)}%</span><span><span class="hit-thread">${esc(d.c)} · ${surfaceOf(d)}</span><span class="hit-line">${oneLine(d)}</span></span><button type="button" class="fold" data-fold="${i}" aria-expanded="${open}">${open?'Fold':'Unfold'}</button>${slip}</div>`;
+  }).join('');
+}
+function dayControls(side, hidden, surface){
+  const where=surface==='relatório'?'in the report':'that day';
+  const word=side==='earlier'?'Earlier':'Later';
+  const more=hidden?`<button type="button" class="dayfold" data-side="${side}" data-act="more">${word} ${where} · ${hidden}</button>`:'';
+  const shut=dayOpen[side]?`<button type="button" class="dayfold shut" data-side="${side}" data-act="shut">Fold</button>`:'';
+  return (more||shut)?`<div class="dayrow">${more}${shut}</div>`:'';
+}
+function openThread(i){
+  if(!Number.isInteger(i)||!docs[i]) return;
+  const jumped=threadFocus!==i;
+  if(jumped){threadFocus=i; dayOpen={earlier:0,later:0};}
+  const d=docs[i], ids=days.get(d.c+'\t'+d.d)||[i];
+  const at=Math.max(0, ids.indexOf(i));
+  const before=ids.slice(0, at), after=ids.slice(at+1);
+  dayOpen.earlier=Math.min(dayOpen.earlier, before.length);
+  dayOpen.later=Math.min(dayOpen.later, after.length);
+  const surface=surfaceOf(d);
+  const hidden=(before.length-dayOpen.earlier)+(after.length-dayOpen.later);
+  $('phone-name').textContent=d.c;
+  $('phone-surface').textContent=surface;
+  $('phone-fold').textContent=ids.length<2?'':hidden?`${hidden} still folded`:'Open';
+  $('phone-who').innerHTML=whoChips(peopleOf(ids));
+  const state={day:''};
+  const shownBefore=before.slice(before.length-dayOpen.earlier);
+  const shownAfter=after.slice(0, dayOpen.later);
+  const pane=(id,on)=>`<div class="pane${on?' on':''}">${bubbles(id, state)}</div>`;
+  let html=dayControls('earlier', before.length-shownBefore.length, surface);
+  if(shownBefore.length) html+=shownBefore.map(id=>pane(id,false)).join('<div class="gap"></div>')+'<div class="gap"></div>';
+  html+=pane(i,true);
+  if(shownAfter.length) html+='<div class="gap"></div>'+shownAfter.map(id=>pane(id,false)).join('<div class="gap"></div>');
+  html+=dayControls('later', after.length-shownAfter.length, surface);
+  $('log').innerHTML=html;
+  document.querySelectorAll('.hit.on,.card.on').forEach(n=>n.classList.remove('on'));
+  document.querySelectorAll(`.hit[data-i="${i}"],.card[data-i="${i}"]`).forEach(n=>n.classList.add('on'));
+  const here=document.querySelector('#log .pane.on');
+  if(jumped && here) here.scrollIntoView({block:'center',behavior:'smooth'});
+  if(jumped && matchMedia('(max-width:880px)').matches) $('phone').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function moveDay(side, act){
+  if(threadFocus<0) return;
+  const d=docs[threadFocus], ids=days.get(d.c+'\t'+d.d)||[threadFocus];
+  const at=Math.max(0, ids.indexOf(threadFocus));
+  const n=side==='earlier'?at:ids.length-at-1;
+  dayOpen[side]=act==='shut'?0:Math.min(n, dayOpen[side]+UNFOLD);
+  openThread(threadFocus);
+}
+function oneLine(d){
+  const row=linesOf(d).find(r=>!MEDIA.test(r.body))||linesOf(d)[0];
+  if(!row) return '';
+  const text=row.body.replace(/\s+/g,' ').slice(0,180);
+  return `${esc(row.stamp)} ${esc(row.who)}: ${renderBody(text)}`;
+}
+function settingOf(i,name){
+  const rows=linesOf(docs[i]);
+  const n=(name||'').toLowerCase();
+  const hit=rows.find(r=>r.body.toLowerCase().includes(n))||rows[0];
+  if(!hit) return '';
+  return `${hit.stamp} ${hit.who}: ${hit.body.replace(/\s+/g,' ').slice(0,240)}`;
+}
+
+let emb=null;
+const preview=docs.findIndex(d=>/fasano/i.test(d.x)&&surfaceOf(d)==='conversa');
+if(preview>=0) openThread(preview);
+$('st').textContent=`${docs.length} passages on screen. Loading the embedding model…`;
+$('f').onsubmit=e=>{e.preventDefault(); go();};
+$('th').oninput=()=>$('tv').textContent=$('th').value+'%';
+$('th').onchange=()=>{if($('q').value.trim()) go();};
+document.body.addEventListener('click',e=>{
+  if(e.target.closest&&e.target.closest('a.place,a.price,a.buy')) return;
+  const day=e.target.closest&&e.target.closest('button.dayfold');
+  if(day){moveDay(day.dataset.side, day.dataset.act); return;}
+  const fold=e.target.closest&&e.target.closest('button.fold');
+  if(fold){
+    const id=+fold.dataset.fold;
+    if(slips.has(id)) slips.delete(id); else slips.add(id);
+    paintHits();
+    return;
+  }
+  const q=e.target.closest&&e.target.closest('[data-q]');
+  if(q){$('q').value=q.dataset.q; go(); return;}
+  const open=e.target.closest&&e.target.closest('[data-i]');
+  if(open&&open.dataset.i!==undefined) openThread(+open.dataset.i);
+});
+document.body.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'&&e.key!==' ') return;
+  if(e.target.closest&&e.target.closest('a.place,a.price,a.buy,input,button,textarea')) return;
+  const open=e.target.closest&&e.target.closest('.hit[data-i],.moment[data-i]');
+  if(!open) return;
+  e.preventDefault();
+  openThread(+open.dataset.i);
+});
+
+emb=await pipeline('feature-extraction',meta.model);
+$('st').textContent=`Ready. ${docs.length} passages. The score is meaning.`;
+
 function pct(c,q){const xs=[-1,...q,Math.min(1,q[q.length-1]+0.05)],ys=[0,...meta.pct_at,100];
- if(c<=xs[0])return 0; for(let i=1;i<xs.length;i++) if(c<=xs[i]) return ys[i-1]+(ys[i]-ys[i-1])*(c-xs[i-1])/(xs[i]-xs[i-1]); return 100;}
-function dots(M,n,scale,qv){const o=new Float32Array(n);for(let i=0;i<n;i++){let s=0,b=i*D;for(let j=0;j<D;j++)s+=M[b+j]*qv[j];o[i]=s*scale/127;}return o;}
-async function go(){const query=$('q').value.trim(); if(!query)return; $('st').textContent='Searching…';
- const qv=(await emb('query: '+query,{pooling:'mean',normalize:true})).data;
- const cos=dots(E,docs.length,meta.doc_scale,qv); const nq=norm(query); const esc2=nq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
- const full=new RegExp('\\b'+esc2+'\\w{0,3}\\b'); const terms=(nq.match(/\w{4,}/g)||[]).map(w=>new RegExp('\\b'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
- const th=+$('th').value, lim=+$('lim').value; const sc=[];
- for(let i=0;i<docs.length;i++){let c=cos[i]-meta.hub_alpha*docs[i].h; const t=ntext[i];
-  if(full.test(t))c+=meta.lex_bonus; else if(terms.length&&terms.every(r=>r.test(t)))c+=meta.lex_bonus/2; sc.push([pct(c,meta.doc_null_quantiles),i]);}
- sc.sort((a,b)=>b[0]-a[0]); const above=sc.filter(s=>s[0]>=th);
- const kc=dots(K,kws.length,meta.kw_scale,qv); const kk=[...kc].map((c,i)=>[pct(c,meta.kw_null_quantiles),i]).sort((a,b)=>b[0]-a[0]).slice(0,20);
- $('kw').innerHTML='Related keywords: '+kk.map(([p,i])=>`<span class=k data-k="${esc(kws[i].k)}">${esc(kws[i].k)} ${p.toFixed(0)}%</span>`).join('');
- $('info').innerHTML=`<p>${above.length} passages ≥ ${th}% (showing ${Math.min(lim,above.length)})${above.length?'':' — lower the threshold to see weaker matches'}</p>`;
- $('res').innerHTML=above.slice(0,lim).map(([p,i])=>{const d=docs[i];return `<div class=r><div class=bar style="width:${p}%"></div><span class=p>${p.toFixed(1)}%</span><span class=m>${esc(d.c)} · ${esc(d.d)} ${esc(d.t)} · ${esc(d.s.join(', '))} · PDF p.${d.p} ${esc(d.i.join(' '))}</span><div class=t>${esc(d.x)}</div></div>`}).join('');
- $('st').textContent=`Ready.`; }
-$('f').onsubmit=e=>{e.preventDefault();go()}; $('th').oninput=()=>$('tv').textContent=$('th').value+'%'; $('th').onchange=go;
-$('kw').onclick=e=>{if(e.target.dataset.k){$('q').value=e.target.dataset.k;go()}};
-const u=new URLSearchParams(location.search).get('q'); if(u){$('q').value=u;go()}
-</script></html>
+  if(c<=xs[0])return 0; for(let i=1;i<xs.length;i++) if(c<=xs[i]) return ys[i-1]+(ys[i]-ys[i-1])*(c-xs[i-1])/(xs[i]-xs[i-1]); return 100;}
+function dots(M,n,scale,qv){const o=new Float32Array(n); for(let i=0;i<n;i++){let s=0,b=i*D; for(let j=0;j<D;j++) s+=M[b+j]*qv[j]; o[i]=s*scale/127;} return o;}
+function dot(a,b){let s=0; for(let i=0;i<a.length;i++) s+=a[i]*b[i]; return s;}
+function leadOf(qv){
+  const bag=meta.concepts||{};
+  let best=null,bv=-2,second=-2;
+  for(const [k,v] of Object.entries(bag)){
+    const c=dot(qv,v);
+    if(c>bv){second=bv; best=k; bv=c;} else if(c>second) second=c;
+  }
+  if(best==null||bv<0.22||bv-second<0.012) return null;
+  return best;
+}
+function axisOf(q,lead){
+  const n=norm(q);
+  if(/\b(restaurante|restaurantes|jantar|jantares|almoco|hotel|hoteis|brunch)\b/.test(n)) return LEAD.dining;
+  if(/\b(viagem|viajar|voo|aviao|cidade|praia)\b/.test(n)) return LEAD.place;
+  if(/\b(banco|bacen|stf|policia|itau)\b/.test(n)) return LEAD.org;
+  return lead&&LEAD[lead];
+}
+function peopleInQuery(q){
+  const n=norm(q);
+  const hits=[];
+  for(const p of roster){
+    if((p.aliases||[]).some(a=>a.length>=4 && new RegExp('\\b'+a.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b').test(n))) hits.push(p.name);
+  }
+  return [...new Set(hits)];
+}
+async function go(){
+  const query=$('q').value.trim(); if(!query) return;
+  if(!emb){$('st').textContent='The model is still arriving.'; return;}
+  $('st').textContent='Searching by meaning…';
+  const qv=(await emb('query: '+query,{pooling:'mean',normalize:true})).data;
+  const cos=dots(E,docs.length,meta.doc_scale,qv);
+  const sc=new Float32Array(docs.length);
+  for(let i=0;i<docs.length;i++) sc[i]=pct(cos[i]-meta.hub_alpha*(docs[i].h||0), meta.doc_null_quantiles);
+  const order=[...sc.keys()].sort((a,b)=>sc[b]-sc[a]);
+  const th=+$('th').value, lim=+$('lim').value;
+  const above=order.filter(i=>sc[i]>=th);
+  const asked=peopleInQuery(query);
+  const lead=leadOf(qv);
+  const spec=axisOf(query,lead);
+  const floor=Math.min(th,60);
+  let groups=[];
+  if(spec){
+    const field=spec[0], bag=new Map();
+    for(let i=0;i<docs.length;i++){
+      if(sc[i]<floor) continue;
+      if(asked.length && !(docs[i].who||[]).some(w=>asked.includes(w))) continue;
+      for(const name of (docs[i][field]||[])){
+        if(!bag.has(name)) bag.set(name,{name,best:-1,at:-1,docs:[],who:new Map()});
+        const g=bag.get(name);
+        g.docs.push(i);
+        for(const w of docs[i].who||[]) g.who.set(w,(g.who.get(w)||0)+1);
+        if(sc[i]>g.best){g.best=sc[i]; g.at=i;}
+      }
+    }
+    groups=[...bag.values()].filter(g=>g.best>=floor).sort((a,b)=>b.best-a.best).slice(0,24);
+  }
+  const kc=dots(K,kws.length,meta.kw_scale,qv);
+  const kk=[...kc].map((c,i)=>[pct(c,meta.kw_null_quantiles),i]).filter(([,i])=>!JUNK.test(kws[i].k)).sort((a,b)=>b[0]-a[0]).slice(0,12);
+  $('kw').innerHTML=kk.length?'<h2>Nearby</h2>'+kk.map(([p,i])=>`<span class="k" data-q="${esc(kws[i].k)}">${esc(kws[i].k)} ${p.toFixed(0)}%</span>`).join(''):'';
+  $('info').innerHTML=`<p class="lede">${above.length} passages at ${th}% or above.${spec?' Grouped by the names in those passages, with who was there and the line.':''} Open a thread, then unfold the rest of the day. ${asked.length?`Limited to passages that include ${esc(asked.join(', '))}.`:''}</p>`;
+  $('groups').innerHTML=groups.length?`<h2>${esc(spec[1])}</h2>`+groups.map(g=>{
+    const who=[...g.who.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+    const d=docs[g.at];
+    const plain=settingOf(g.at,g.name);
+    const title=(spec[0]==='ven'||spec[0]==='plc')?mapsA(g.name, plain)+priceA(priceEntry(g.name, plain)):esc(g.name);
+    const cut=plain.match(/^(\[[^\]]+\] [^:]{1,80}: )([\s\S]*)$/);
+    const setting=cut?esc(cut[1])+renderBody(cut[2]):esc(plain);
+    const rest=g.docs.filter(id=>id!==g.at);
+    const moments=rest.length?`<div class="moments">${rest.slice(0,5).map(id=>`<div class="moment" role="button" tabindex="0" data-i="${id}">${oneLine(docs[id])}</div>`).join('')}${rest.length>5?`<p class="meta">${rest.length-5} more sit in the threads below.</p>`:''}</div>`:'';
+    return `<article class="card" data-i="${g.at}"><h3>${title} <span class="score">${g.best.toFixed(0)}%</span></h3><div class="meta">${g.docs.length} passage${g.docs.length>1?'s':''} · ${esc(d.c)} · ${surfaceOf(d)}</div><div>${whoChips(who)}</div><p class="setting">${setting}</p>${moments}</article>`;
+  }).join(''):'';
+  const pc=new Map();
+  for(const i of above.slice(0,80)) for(const w of docs[i].who||[]) pc.set(w,(pc.get(w)||0)+1);
+  const topPeople=[...pc.entries()].sort((a,b)=>b[1]-a[1]).slice(0,12);
+  $('people').innerHTML=topPeople.length?`<h2>People in these passages</h2><div class="card">${topPeople.map(([n,c])=>`<span class="person" data-q="${esc(n)}">${esc(n)} · ${c}</span>`).join('')}<p class="meta">The count is how many passages above the threshold include that person. Being named together is not a finding.</p></div>`:'';
+  lastHits=above.slice(0,lim).map(i=>({i,s:sc[i]}));
+  slips=new Set();
+  paintHits();
+  if(above.length) openThread(above[0]);
+  $('st').textContent='Ready.';
+}
+const u=new URLSearchParams(location.search).get('q'); if(u){$('q').value=u; go();}
+</script>
+</html>

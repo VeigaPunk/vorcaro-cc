@@ -1,0 +1,130 @@
+{
+  "Four Seasons Surfside": {
+    "href": "https://reservations.fourseasons.com/en?hotelCode=MIA273&arrive=2026-12-09&depart=2026-12-10&adults=1&rooms=1",
+    "price": "5700",
+    "currency": "USD",
+    "label": "Surf Club One-Bedroom Suite",
+    "unit": "1 night, 2026-12-09",
+    "retailer": "Four Seasons"
+  },
+  "Four Seasons Jumeirah": {
+    "href": "https://reservations.fourseasons.com/en?hotelCode=DXB900&arrive=2026-12-09&depart=2026-12-10&adults=1&rooms=1",
+    "price": "2178",
+    "currency": "USD",
+    "label": "Executive Suite",
+    "unit": "1 night, 2026-12-09",
+    "retailer": "Four Seasons"
+  },
+  "Fasano Angra": {
+    "href": "https://reservations.fasano.com.br/?adult=1&arrive=2026-12-09&chain=29200&child=0&currency=BRL&depart=2026-12-10&hotel=79441&level=hotel&locale=en&rooms=1",
+    "price": "5083.45",
+    "currency": "BRL",
+    "label": "Ocean Partial View Suite",
+    "unit": "1 night, 2026-12-09, before tax",
+    "retailer": "Fasano"
+  },
+  "Fasano Itaim": {
+    "href": "https://reservations.fasano.com.br/?adult=1&arrive=2026-12-09&chain=29200&child=0&currency=BRL&depart=2026-12-10&hotel=44862&level=hotel&locale=en-US&rooms=1",
+    "price": "9187",
+    "currency": "BRL",
+    "label": "Deluxe Suite",
+    "unit": "1 night, 2026-12-09",
+    "retailer": "Fasano"
+  },
+  "Setai": {
+    "href": "https://be.synxis.com/?adult=1&arrive=2026-12-09&chain=24447&child=0&currency=USD&depart=2026-12-10&hotel=7030&level=hotel&locale=en-US&productcurrency=USD&rooms=1",
+    "price": "1800",
+    "currency": "USD",
+    "label": "Art Deco One-Bedroom Suite",
+    "unit": "1 night, 2026-12-09",
+    "retailer": "The Setai Miami Beach"
+  },
+  "Botanique": {
+    "href": "https://be.synxis.com/?adult=1&arrive=2026-12-09&chain=8565&child=0&config=botaniqueconfig&currency=BRL&depart=2026-12-10&hotel=48948&level=hotel&locale=en-US&productcurrency=BRL&rooms=1&theme=botaniquetheme",
+    "price": "3840",
+    "currency": "BRL",
+    "label": "One-Bedroom Suite",
+    "unit": "1 night, 2026-12-09",
+    "retailer": "Botanique"
+  },
+  "Six Senses Botanique": {
+    "href": "https://be.synxis.com/?adult=1&arrive=2026-12-09&chain=8565&child=0&config=botaniqueconfig&currency=BRL&depart=2026-12-10&hotel=48948&level=hotel&locale=en-US&productcurrency=BRL&rooms=1&theme=botaniquetheme",
+    "price": "3840",
+    "currency": "BRL",
+    "label": "One-Bedroom Suite",
+    "unit": "1 night, 2026-12-09",
+    "retailer": "Botanique"
+  },
+  "Le Toiny": {
+    "href": "https://letoiny.com/room/spirit-suite/",
+    "price": "1875",
+    "currency": "EUR",
+    "label": "Spirit Suite",
+    "unit": "1 night rate, 2026-12-09, 2-night minimum",
+    "retailer": "Hotel Le Toiny"
+  },
+  "Atlantis": {
+    "href": "https://booking.atlantis.com/?adult=1&arrive=2026-12-09&chain=9020&child=0&currency=USD&depart=2026-12-10&hotel=21967&level=hotel&locale=en-US&productcurrency=USD&rooms=1&theme=ATL",
+    "price": "1049",
+    "currency": "USD",
+    "label": "Terrace Suite",
+    "unit": "1 night, 2026-12-09",
+    "retailer": "Atlantis The Palm"
+  },
+  "Casa Neos": {
+    "href": "https://www.casa-neos.com/menus",
+    "price": "225",
+    "currency": "USD",
+    "label": "Gourmet tasting menu",
+    "unit": "1 person, dinner",
+    "retailer": "CASA NEOS"
+  },
+  "Elcielo Miami": {
+    "href": "https://elcielo.com.co/miami/the-experience/",
+    "price": "289",
+    "currency": "USD",
+    "label": "The Experience tasting menu",
+    "unit": "1 person, dinner",
+    "retailer": "El Cielo Miami"
+  },
+  "L'Atelier de Joel Robuchon": {
+    "href": "https://latelier-miami.com/menus/the-only-caviar/",
+    "price": "525",
+    "currency": "USD",
+    "label": "Only Caviar tasting menu",
+    "unit": "1 person, dinner",
+    "retailer": "L'Atelier Miami"
+  },
+  "LPM": {
+    "href": "https://lpmrestaurants.com/miami/menus/les-precious-moments-menus/",
+    "price": "90",
+    "currency": "USD",
+    "label": "Dinner prix fixe",
+    "unit": "1 person, dinner",
+    "retailer": "LPM Miami"
+  },
+  "Tanit": {
+    "href": "https://www.tanitbeachibiza.com/booking-terms-and-conditions-for-tucked-event/",
+    "price": "79",
+    "currency": "EUR",
+    "label": "Tasting menu",
+    "unit": "1 person, dinner",
+    "retailer": "Tanit Beach Ibiza"
+  },
+  "Gypsea": {
+    "href": "https://www.gypsea-stbarth.com/news-agenda/gyp-sea-luna",
+    "price": "180",
+    "currency": "EUR",
+    "label": "Dinner menu",
+    "unit": "1 person, dinner",
+    "retailer": "Gyp Sea"
+  },
+  "Rosewood São Paulo": {
+    "href": "https://reservations.rosewoodhotels.com/?adult=1&arrive=2026-12-09&chain=5159&child=0&currency=BRL&depart=2026-12-10&hotel=34931&level=hotel&locale=en-US&productcurrency=BRL&rooms=1",
+    "price": "16500",
+    "currency": "BRL",
+    "label": "Premier Suite",
+    "unit": "1 night, 2026-12-09, before tax",
+    "retailer": "Rosewood São Paulo"
+  }
+}

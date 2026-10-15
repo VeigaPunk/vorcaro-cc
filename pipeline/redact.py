@@ -11,7 +11,7 @@ SUBS=[
  ('device', re.compile(r'(?i)\b(imei\s*[ab]?|n[uú]mero de s[eé]rie|serial(?:\s+number)?|udid|iccid|imsi)\s*:?\s*[A-Z0-9-]{5,}')),
  ('ufed', re.compile(r'(?i)\b[\w.]*(?:ufed|serviceidentifier|servicel?dentifier|participant\s+identifier)[\w.]*\s*:?\s*(?:[\w@.\-]*\d[\w@.\-]*\s*){0,2}')),
  ('hexid', re.compile(r'\b(?=[0-9a-fA-F-]*\d)[0-9a-fA-F]{8}(?:-?[0-9a-fA-F]{4}){3}-?[0-9a-fA-F]{12}\b|\b(?=[0-9a-fA-F]*[a-fA-F])(?=[0-9a-fA-F]*\d)[0-9a-fA-F]{16,}\b')),
- ('address', re.compile(r'\b(?:Rua|R\.|Avenida|Av\.|Alameda|Al\.|Travessa|Rodovia|Estrada|Praça|SHIS|SHIN|SQS|SQN|SMDB|QI|QL)\s+[^\n,;|]{2,60},?\s*(?:n[ºo°]\.?\s*)?\d+[\w\- ]{0,15}')),
+ ('address', re.compile(r'\b(?:Rua|R\.|Avenida|Av\.|Alameda|Al\.|Travessa|Rodovia|Estrada|Praça|SHIS|SHIN|SQS|SQN|SMDB|QI|QL)\s+[^\n,;|\\]{2,60},?\s*(?:n[ºo°]\.?\s*)?\d+[\w\- ]{0,15}')),
  ('address_en', re.compile(r'\b\d{1,6}\s+(?:[NSEW]\.?\s+)?(?:[A-Z][\w.]*\s+){1,4}(?:Blvd|Boulevard|Street|St|Ave|Avenue|Road|Rd|Drive|Dr|Lane|Ln|Way|Court|Ct|Place|Pl|Terrace|Causeway|Parkway|Hwy|Highway)\b\.?')),
  ('address_en2', re.compile(r'\b(?:[A-Z][\w.]*\s+){1,3}(?:Blvd|Boulevard)\b')),
 ]
