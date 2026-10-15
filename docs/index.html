@@ -28,6 +28,11 @@ button,input{font:inherit;color:inherit}
 main{max-width:1120px;margin:0 auto;padding:22px 16px 64px}
 .desk{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px;align-items:start}
 h1{font:700 22px/1 var(--font);letter-spacing:-.03em;margin:0 0 8px}
+.mast{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px}
+.mast h1{margin:0}
+.lang{display:flex;gap:4px}
+.langbtn{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:3px 8px;cursor:pointer;font-size:11px}
+.langbtn.on{color:#1a1404;background:var(--gold);border-color:var(--gold)}
 .lede{color:var(--muted);font-size:13px;max-width:62ch;margin:0 0 8px}
 form{display:flex;gap:8px;margin:16px 0 8px}
 input[type=text]{flex:1;background:#000;border:1px solid var(--line);border-radius:10px;padding:12px 12px;outline:none}
@@ -113,17 +118,23 @@ a.place:hover,a.buy:hover,a.price:hover{color:#fff}
 }
 </style>
 <main>
+<div class="mast">
 <h1>vorcaro-cc</h1>
+<div class="lang" role="group" aria-label="Language">
+  <button type="button" class="langbtn" data-lang="en">EN</button>
+  <button type="button" class="langbtn" data-lang="pt">PT</button>
+</div>
+</div>
 <div class="desk">
 <section>
-<p class="lede">Ask in ordinary words. The closest passage opens as a thread. Unfold the rest of that day when you want it. A high score means related. It is not proof.</p>
+<p class="lede" id="lede">Ask in ordinary words. The closest passage opens as a thread. Unfold the rest of that day when you want it. A high score means related. It is not proof.</p>
 <p id="st">Loading the archive. The model arrives after the first thread is on screen.</p>
 <form id="f">
   <input type="text" id="q" placeholder="restaurante, jantar em Paris, Banco Central" autofocus>
-  <button class="go">Search</button>
+  <button class="go" id="go">Search</button>
 </form>
-<div class="row">threshold <input type="range" id="th" min="50" max="100" value="75"><span id="tv">75%</span>
- · show <input id="lim" value="40" size="3"></div>
+<div class="row"><span id="lbl-th">threshold</span> <input type="range" id="th" min="50" max="100" value="75"><span id="tv">75%</span>
+ · <span id="lbl-show">show</span> <input id="lim" value="40" size="3"></div>
 <div id="kw"></div>
 <div id="info"></div>
 <div id="groups"></div>
@@ -142,14 +153,14 @@ a.place:hover,a.buy:hover,a.price:hover{color:#fff}
         <div id="phone-who"></div>
       </div>
       <div class="log" id="log">
-        <div class="empty"><div class="big">💬</div>Search, and the thread opens here.</div>
+        <div class="empty" id="empty"><div class="big">💬</div><p id="empty-copy">Search, and the thread opens here.</p></div>
       </div>
     </div>
     <div class="homebar" aria-hidden="true"></div>
   </div>
 </aside>
 </div>
-<footer>The material is the chat archive and the Federal Police report IPJ-A 3298613/2026. Phones, CPFs, bank details and street addresses stay redacted. The publish step stops if the audit still finds one. Scores are relatedness, read in this browser, with no server. <a href="https://github.com/VeigaPunk/vorcaro-cc">Source and method</a>.</footer>
+<footer id="foot"></footer>
 </main>
 <script type="module">
 import {pipeline} from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.1';
@@ -157,7 +168,122 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const JUNK=/whatsapp|no answer|^figura$|^nota$|submodule|aplicativo de notas|^instagram$|^activity$|^lunch$|^free$|^cruise$|^event$|^transport$/i;
-const LEAD={dining:['ven','Places named around meals'],venue:['ven','Places named around meals'],place:['plc','Places'],org:['org','Institutions'],travel:['plc','Places on these crossings']};
+const LEAD={dining:['ven','groupMeals'],venue:['ven','groupMeals'],place:['plc','groupPlaces'],org:['org','groupOrgs'],travel:['plc','groupTravel']};
+const UI={
+  en:{
+    lede:'Ask in ordinary words. The closest passage opens as a thread. Unfold the rest of that day when you want it. A high score means related. It is not proof.',
+    loading:'Loading the archive. The model arrives after the first thread is on screen.',
+    search:'Search', threshold:'threshold', show:'show',
+    empty:'Search, and the thread opens here.',
+    footer:'The material is the chat archive and the Federal Police report IPJ-A 3298613/2026. Phones, CPFs, bank details and street addresses stay redacted. The publish step stops if the audit still finds one. Scores are relatedness, read in this browser, with no server.',
+    source:'Source and method',
+    none:'Nothing at this threshold. Lower it.',
+    threads:'Threads', unfold:'Unfold', fold:'Fold',
+    earlier:'Earlier', later:'Later', report:'in the report', day:'that day',
+    stillFolded:'{n} still folded', allOpen:'Open',
+    docs:'{n} passages on screen. Loading the embedding model…',
+    readyIntro:'Ready. {n} passages. The score is meaning.',
+    ready:'Ready.', modelWait:'The model is still arriving.', searching:'Searching by meaning…',
+    nearby:'Nearby', people:'People in these passages',
+    peopleMeta:'The count is how many passages above the threshold include that person. Being named together is not a finding.',
+    onePassage:'1 passage', manyPassages:'{n} passages',
+    atOrAbove:'at {th}% or above.',
+    grouped:'Grouped by the names in those passages, with who was there and the line.',
+    openDay:'Open a thread, then unfold the rest of the day.',
+    limited:'Limited to passages that include {who}.',
+    moreBelow:'{n} more sit in the threads below.',
+    groupMeals:'Places named around meals', groupPlaces:'Places', groupOrgs:'Institutions', groupTravel:'Places on these crossings'
+  },
+  pt:{
+    lede:'Pergunte com palavras comuns. A passagem mais próxima abre como conversa. O resto daquele dia fica fechado até você abrir. Nota alta significa relação. Não é prova.',
+    loading:'Carregando o arquivo. O modelo chega depois da primeira conversa.',
+    search:'Buscar', threshold:'mínimo', show:'mostrar',
+    empty:'Busque, e a conversa abre aqui.',
+    footer:'O material é o arquivo das conversas e o relatório da Polícia Federal IPJ-A 3298613/2026. Telefones, CPFs, dados bancários e endereços ficam ocultos. A publicação trava se a auditoria ainda achar algum. As notas medem relação, lidas neste navegador, sem servidor.',
+    source:'Fonte e método',
+    none:'Nada nesta nota. Abaixe o mínimo.',
+    threads:'Trechos', unfold:'Abrir', fold:'Fechar',
+    earlier:'Mais cedo', later:'Mais tarde', report:'no relatório', day:'nesse dia',
+    stillFolded:'{n} ainda por abrir', allOpen:'Tudo aberto',
+    docs:'{n} trechos na tela. O modelo ainda está carregando…',
+    readyIntro:'Pronto. {n} trechos. A nota é o sentido.',
+    ready:'Pronto.', modelWait:'O modelo ainda está chegando.', searching:'Buscando pelo sentido…',
+    nearby:'Perto', people:'Pessoas nestes trechos',
+    peopleMeta:'A conta é quantos trechos acima da nota incluem essa pessoa. Aparecer junto não é uma conclusão.',
+    onePassage:'1 trecho', manyPassages:'{n} trechos',
+    atOrAbove:'com nota de {th}% ou mais.',
+    grouped:'Agrupados pelos nomes nesses trechos, com quem estava e a frase.',
+    openDay:'Abra um trecho e, se quiser, o resto do dia.',
+    limited:'Só trechos com {who}.',
+    moreBelow:'Mais {n} estão nos trechos abaixo.',
+    groupMeals:'Lugares nas refeições', groupPlaces:'Lugares', groupOrgs:'Instituições', groupTravel:'Lugares dessas viagens'
+  }
+};
+const LABEL_PT={
+  'Surf Club One-Bedroom Suite':'Suíte de um quarto, Surf Club',
+  'Executive Suite':'Suíte executiva',
+  'Ocean Partial View Suite':'Suíte com vista parcial do mar',
+  'Deluxe Suite':'Suíte deluxe',
+  'Art Deco One-Bedroom Suite':'Suíte art déco de um quarto',
+  'One-Bedroom Suite':'Suíte de um quarto',
+  'Terrace Suite':'Suíte terraço',
+  'Premier Suite':'Suíte premier',
+  'Gourmet tasting menu':'Menu degustação gourmet',
+  'The Experience tasting menu':'Menu degustação The Experience',
+  'Only Caviar tasting menu':'Menu degustação Only Caviar',
+  'Dinner prix fixe':'Preço fechado do jantar',
+  'Tasting menu':'Menu degustação',
+  'Dinner menu':'Menu do jantar'
+};
+let lang='en', phase='boot', view=null;
+function detectLang(){
+  const q=new URLSearchParams(location.search).get('lang');
+  if(q==='pt'||q==='en') return q;
+  let saved='';
+  try{saved=localStorage.getItem('vorcaro-lang')||'';}catch(e){}
+  if(saved==='pt'||saved==='en') return saved;
+  return (navigator.language||'').toLowerCase().startsWith('pt')?'pt':'en';
+}
+function t(k){return (UI[lang]&&UI[lang][k])||UI.en[k]||k;}
+function fill(k, map){return t(k).replace(/\{(\w+)\}/g,(_,n)=>map[n]??'');}
+function passages(n){return n===1?t('onePassage'):fill('manyPassages',{n});}
+function trUnit(u){
+  if(lang!=='pt'||!u) return u||'';
+  return String(u).replace('1 night rate','diária').replace('1 night','1 noite').replace('2-night minimum','mínimo de 2 noites').replace('before tax','antes dos impostos').replace('1 person, dinner','1 pessoa, jantar');
+}
+function paintStatus(){
+  if(phase==='boot') $('st').textContent=t('loading');
+  else if(phase==='docs') $('st').textContent=fill('docs',{n:docs.length});
+  else if(phase==='ready') $('st').textContent=fill('readyIntro',{n:docs.length});
+  else if(phase==='searching') $('st').textContent=t('searching');
+  else if(phase==='wait') $('st').textContent=t('modelWait');
+  else if(phase==='search') $('st').textContent=t('ready');
+}
+function applyStatic(){
+  document.documentElement.lang=lang==='pt'?'pt-BR':'en';
+  $('lede').textContent=t('lede');
+  $('go').textContent=t('search');
+  $('lbl-th').textContent=t('threshold');
+  $('lbl-show').textContent=t('show');
+  $('foot').innerHTML=`${esc(t('footer'))} <a href="https://github.com/VeigaPunk/vorcaro-cc">${esc(t('source'))}</a>.`;
+  if($('empty-copy')) $('empty-copy').textContent=t('empty');
+  document.querySelectorAll('.langbtn').forEach(b=>b.classList.toggle('on', b.dataset.lang===lang));
+  const group=document.querySelector('.lang');
+  if(group) group.setAttribute('aria-label', lang==='pt'?'Idioma':'Language');
+  paintStatus();
+}
+function setLang(next){
+  lang=next==='pt'?'pt':'en';
+  try{localStorage.setItem('vorcaro-lang', lang);}catch(e){}
+  const url=new URL(location.href);
+  if(lang==='pt') url.searchParams.set('lang','pt'); else url.searchParams.delete('lang');
+  history.replaceState(null,'',url);
+  applyStatic();
+  paintSearch();
+  if(threadFocus>=0) openThread(threadFocus);
+}
+lang=detectLang();
+applyStatic();
 const MEDIA=/^(Foto|Áudio|Vídeo|Arquivo|Contato|Figurinha)\.?$/i;
 
 function tick(){const d=new Date();$('clock').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
@@ -361,7 +487,8 @@ function money(entry){
   return sym+n;
 }
 function priceTip(entry){
-  return [entry.label, entry.unit, entry.retailer].filter(Boolean).join(' · ');
+  const label=lang==='pt'?(LABEL_PT[entry.label]||entry.label):entry.label;
+  return [label, trUnit(entry.unit), entry.retailer].filter(Boolean).join(' · ');
 }
 function priceA(entry){
   if(!entry||typeof entry.href!=='string'||!entry.href.startsWith('https://')) return '';
@@ -435,18 +562,18 @@ function peopleOf(ids){
 let threadFocus=-1, dayOpen={earlier:0,later:0}, lastHits=[], slips=new Set();
 const UNFOLD=4;
 function paintHits(){
-  if(!lastHits.length){$('res').innerHTML='<p class="lede">Nothing at this threshold. Lower it.</p>'; return;}
-  $('res').innerHTML='<h2>Threads</h2>'+lastHits.map(({i,s})=>{
+  if(!lastHits.length){$('res').innerHTML=`<p class="lede">${esc(t('none'))}</p>`; return;}
+  $('res').innerHTML=`<h2>${esc(t('threads'))}</h2>`+lastHits.map(({i,s})=>{
     const d=docs[i], open=slips.has(i);
     const slip=open?`<div class="slip">${linesOf(d).map(r=>`<p><span class="who-line">${esc(r.stamp)} ${esc(r.who)}</span>${renderBody(r.body)}</p>`).join('')}</div>`:'';
-    return `<div class="hit${open?' open':''}${i===threadFocus?' on':''}" role="button" tabindex="0" data-i="${i}"><span class="score">${s.toFixed(0)}%</span><span><span class="hit-thread">${esc(d.c)} · ${surfaceOf(d)}</span><span class="hit-line">${oneLine(d)}</span></span><button type="button" class="fold" data-fold="${i}" aria-expanded="${open}">${open?'Fold':'Unfold'}</button>${slip}</div>`;
+    return `<div class="hit${open?' open':''}${i===threadFocus?' on':''}" role="button" tabindex="0" data-i="${i}"><span class="score">${s.toFixed(0)}%</span><span><span class="hit-thread">${esc(d.c)} · ${surfaceOf(d)}</span><span class="hit-line">${oneLine(d)}</span></span><button type="button" class="fold" data-fold="${i}" aria-expanded="${open}">${open?esc(t('fold')):esc(t('unfold'))}</button>${slip}</div>`;
   }).join('');
 }
 function dayControls(side, hidden, surface){
-  const where=surface==='relatório'?'in the report':'that day';
-  const word=side==='earlier'?'Earlier':'Later';
-  const more=hidden?`<button type="button" class="dayfold" data-side="${side}" data-act="more">${word} ${where} · ${hidden}</button>`:'';
-  const shut=dayOpen[side]?`<button type="button" class="dayfold shut" data-side="${side}" data-act="shut">Fold</button>`:'';
+  const where=surface==='relatório'?t('report'):t('day');
+  const word=side==='earlier'?t('earlier'):t('later');
+  const more=hidden?`<button type="button" class="dayfold" data-side="${side}" data-act="more">${esc(word)} ${esc(where)} · ${hidden}</button>`:'';
+  const shut=dayOpen[side]?`<button type="button" class="dayfold shut" data-side="${side}" data-act="shut">${esc(t('fold'))}</button>`:'';
   return (more||shut)?`<div class="dayrow">${more}${shut}</div>`:'';
 }
 function openThread(i){
@@ -462,7 +589,7 @@ function openThread(i){
   const hidden=(before.length-dayOpen.earlier)+(after.length-dayOpen.later);
   $('phone-name').textContent=d.c;
   $('phone-surface').textContent=surface;
-  $('phone-fold').textContent=ids.length<2?'':hidden?`${hidden} still folded`:'Open';
+  $('phone-fold').textContent=ids.length<2?'':hidden?fill('stillFolded',{n:hidden}):t('allOpen');
   $('phone-who').innerHTML=whoChips(peopleOf(ids));
   const state={day:''};
   const shownBefore=before.slice(before.length-dayOpen.earlier);
@@ -505,11 +632,14 @@ function settingOf(i,name){
 let emb=null;
 const preview=docs.findIndex(d=>/fasano/i.test(d.x)&&surfaceOf(d)==='conversa');
 if(preview>=0) openThread(preview);
-$('st').textContent=`${docs.length} passages on screen. Loading the embedding model…`;
+phase='docs';
+paintStatus();
 $('f').onsubmit=e=>{e.preventDefault(); go();};
 $('th').oninput=()=>$('tv').textContent=$('th').value+'%';
 $('th').onchange=()=>{if($('q').value.trim()) go();};
 document.body.addEventListener('click',e=>{
+  const pick=e.target.closest&&e.target.closest('[data-lang]');
+  if(pick){setLang(pick.dataset.lang); return;}
   if(e.target.closest&&e.target.closest('a.place,a.price,a.buy')) return;
   const day=e.target.closest&&e.target.closest('button.dayfold');
   if(day){moveDay(day.dataset.side, day.dataset.act); return;}
@@ -535,7 +665,8 @@ document.body.addEventListener('keydown',e=>{
 });
 
 emb=await pipeline('feature-extraction',meta.model);
-$('st').textContent=`Ready. ${docs.length} passages. The score is meaning.`;
+phase='ready';
+paintStatus();
 
 function pct(c,q){const xs=[-1,...q,Math.min(1,q[q.length-1]+0.05)],ys=[0,...meta.pct_at,100];
   if(c<=xs[0])return 0; for(let i=1;i<xs.length;i++) if(c<=xs[i]) return ys[i-1]+(ys[i]-ys[i-1])*(c-xs[i-1])/(xs[i]-xs[i-1]); return 100;}
@@ -568,8 +699,9 @@ function peopleInQuery(q){
 }
 async function go(){
   const query=$('q').value.trim(); if(!query) return;
-  if(!emb){$('st').textContent='The model is still arriving.'; return;}
-  $('st').textContent='Searching by meaning…';
+  if(!emb){phase='wait'; paintStatus(); return;}
+  phase='searching';
+  paintStatus();
   const qv=(await emb('query: '+query,{pooling:'mean',normalize:true})).data;
   const cos=dots(E,docs.length,meta.doc_scale,qv);
   const sc=new Float32Array(docs.length);
@@ -599,9 +731,27 @@ async function go(){
   }
   const kc=dots(K,kws.length,meta.kw_scale,qv);
   const kk=[...kc].map((c,i)=>[pct(c,meta.kw_null_quantiles),i]).filter(([,i])=>!JUNK.test(kws[i].k)).sort((a,b)=>b[0]-a[0]).slice(0,12);
-  $('kw').innerHTML=kk.length?'<h2>Nearby</h2>'+kk.map(([p,i])=>`<span class="k" data-q="${esc(kws[i].k)}">${esc(kws[i].k)} ${p.toFixed(0)}%</span>`).join(''):'';
-  $('info').innerHTML=`<p class="lede">${above.length} passages at ${th}% or above.${spec?' Grouped by the names in those passages, with who was there and the line.':''} Open a thread, then unfold the rest of the day. ${asked.length?`Limited to passages that include ${esc(asked.join(', '))}.`:''}</p>`;
-  $('groups').innerHTML=groups.length?`<h2>${esc(spec[1])}</h2>`+groups.map(g=>{
+  const pc=new Map();
+  for(const i of above.slice(0,80)) for(const w of docs[i].who||[]) pc.set(w,(pc.get(w)||0)+1);
+  const topPeople=[...pc.entries()].sort((a,b)=>b[1]-a[1]).slice(0,12);
+  view={count:above.length, th, spec, asked, groups, kk, topPeople};
+  lastHits=above.slice(0,lim).map(i=>({i,s:sc[i]}));
+  slips=new Set();
+  paintSearch();
+  if(above.length) openThread(above[0]);
+  phase='search';
+  paintStatus();
+}
+function paintSearch(){
+  if(!view) return;
+  const {count, th, spec, asked, groups, kk, topPeople}=view;
+  $('kw').innerHTML=kk.length?`<h2>${esc(t('nearby'))}</h2>`+kk.map(([p,i])=>`<span class="k" data-q="${esc(kws[i].k)}">${esc(kws[i].k)} ${p.toFixed(0)}%</span>`).join(''):'';
+  const bits=[`${passages(count)} ${fill('atOrAbove',{th})}`];
+  if(spec) bits.push(t('grouped'));
+  bits.push(t('openDay'));
+  if(asked.length) bits.push(fill('limited',{who:asked.join(', ')}));
+  $('info').innerHTML=`<p class="lede">${bits.map(esc).join(' ')}</p>`;
+  $('groups').innerHTML=groups.length?`<h2>${esc(t(spec[1]))}</h2>`+groups.map(g=>{
     const who=[...g.who.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
     const d=docs[g.at];
     const plain=settingOf(g.at,g.name);
@@ -609,18 +759,11 @@ async function go(){
     const cut=plain.match(/^(\[[^\]]+\] [^:]{1,80}: )([\s\S]*)$/);
     const setting=cut?esc(cut[1])+renderBody(cut[2]):esc(plain);
     const rest=g.docs.filter(id=>id!==g.at);
-    const moments=rest.length?`<div class="moments">${rest.slice(0,5).map(id=>`<div class="moment" role="button" tabindex="0" data-i="${id}">${oneLine(docs[id])}</div>`).join('')}${rest.length>5?`<p class="meta">${rest.length-5} more sit in the threads below.</p>`:''}</div>`:'';
-    return `<article class="card" data-i="${g.at}"><h3>${title} <span class="score">${g.best.toFixed(0)}%</span></h3><div class="meta">${g.docs.length} passage${g.docs.length>1?'s':''} · ${esc(d.c)} · ${surfaceOf(d)}</div><div>${whoChips(who)}</div><p class="setting">${setting}</p>${moments}</article>`;
+    const moments=rest.length?`<div class="moments">${rest.slice(0,5).map(id=>`<div class="moment" role="button" tabindex="0" data-i="${id}">${oneLine(docs[id])}</div>`).join('')}${rest.length>5?`<p class="meta">${esc(fill('moreBelow',{n:rest.length-5}))}</p>`:''}</div>`:'';
+    return `<article class="card" data-i="${g.at}"><h3>${title} <span class="score">${g.best.toFixed(0)}%</span></h3><div class="meta">${passages(g.docs.length)} · ${esc(d.c)} · ${surfaceOf(d)}</div><div>${whoChips(who)}</div><p class="setting">${setting}</p>${moments}</article>`;
   }).join(''):'';
-  const pc=new Map();
-  for(const i of above.slice(0,80)) for(const w of docs[i].who||[]) pc.set(w,(pc.get(w)||0)+1);
-  const topPeople=[...pc.entries()].sort((a,b)=>b[1]-a[1]).slice(0,12);
-  $('people').innerHTML=topPeople.length?`<h2>People in these passages</h2><div class="card">${topPeople.map(([n,c])=>`<span class="person" data-q="${esc(n)}">${esc(n)} · ${c}</span>`).join('')}<p class="meta">The count is how many passages above the threshold include that person. Being named together is not a finding.</p></div>`:'';
-  lastHits=above.slice(0,lim).map(i=>({i,s:sc[i]}));
-  slips=new Set();
+  $('people').innerHTML=topPeople.length?`<h2>${esc(t('people'))}</h2><div class="card">${topPeople.map(([n,c])=>`<span class="person" data-q="${esc(n)}">${esc(n)} · ${c}</span>`).join('')}<p class="meta">${esc(t('peopleMeta'))}</p></div>`:'';
   paintHits();
-  if(above.length) openThread(above[0]);
-  $('st').textContent='Ready.';
 }
 const u=new URLSearchParams(location.search).get('q'); if(u){$('q').value=u; go();}
 </script>
